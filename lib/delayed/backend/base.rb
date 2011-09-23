@@ -24,15 +24,10 @@ module Delayed
             raise ArgumentError, 'Cannot enqueue items which do not respond to perform'
           end
           
-          if Delayed::Worker.delay_jobs
-            self.create(options).tap do |job|
-              job.hook(:enqueue)
-            end
-          else
-            options[:payload_object].perform
-          end
+          #send the job to the queues and let the queue decide if it needs to enqueue it
+          enqueue_record(options)
         end
-
+        
         def reserve(worker, max_run_time = Worker.max_run_time)
           # We get up to 5 jobs from the db. In case we cannot get exclusive access to a job we try the next.
           # this leads to a more even distribution of jobs across the worker processes

@@ -14,10 +14,50 @@ module Delayed
     end
   end
 
+  class HighImportanceDelayProxy < ActiveSupport::BasicObject
+    def initialize(payload_class, target, options)
+      @payload_class = payload_class
+      @target = target
+      @options = options
+    end
+
+    def method_missing(method, *args)
+      HighImportanceJob.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+    end
+  end
+  
+  class LowImportanceDelayProxy < ActiveSupport::BasicObject
+    def initialize(payload_class, target, options)
+      @payload_class = payload_class
+      @target = target
+      @options = options
+    end
+
+    def method_missing(method, *args)
+      LowImportanceJob.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+    end
+  end
+  
   module MessageSending
     def delay(options = {})
-      DelayProxy.new(PerformableMethod, self, options)
+      if options.empty?
+        DelayProxy.new(PerformableMethod, self, options)
+      else
+        unless options.has_key?(:importance)
+          DelayProxy.new(PerformableMethod, self, options)
+        else
+          case options[:importance]
+          when "high"
+            HighImportanceDelayProxy.new(PerformableMethod, self, options)
+          when "normal"
+            DelayProxy.new(PerformableMethod, self, options)
+          when "low"
+            LowImportanceDelayProxy.new(PerformableMethod, self, options)
+          end
+        end
+      end
     end
+    
     alias __delay__ delay
 
     def send_later(method, *args)

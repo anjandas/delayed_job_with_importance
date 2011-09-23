@@ -25,10 +25,21 @@ class DelayedJobGenerator < Rails::Generators::Base
     chmod 'script/delayed_job', 0755
   end
   
-  def create_migration_file
+  def create_migration_file1
     if defined?(ActiveRecord)
       migration_template 'migration.rb', 'db/migrate/create_delayed_jobs.rb'
     end
   end
+  
+  def create_migration_file2
+    if defined?(ActiveRecord)
+      migration_template 'migration2.rb', 'db/migrate/create_high_importance_delayed_jobs.rb'
+    end
+  end
 
+  def create_migration_file3
+    if defined?(ActiveRecord)
+      migration_template 'migration3.rb', 'db/migrate/create_low_importance_delayed_jobs.rb'
+    end
+  end
 end

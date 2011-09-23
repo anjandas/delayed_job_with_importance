@@ -1,8 +1,8 @@
-class CreateDelayedJobs < ActiveRecord::Migration
+class CreateHighImportanceDelayedJobs < ActiveRecord::Migration
   def self.up
-    create_table :delayed_jobs, :force => true do |table|
+    create_table :high_importance_delayed_jobs, :force => true do |table|
       table.integer  :priority, :default => 0      # Allows some jobs to jump to the front of the queue
-      table.string  :importance, :default => "normal" # set the importance to normal
+      table.string  :importance, :default => "high" # set the importance to high
       table.integer  :attempts, :default => 0      # Provides for retries, but still fail eventually.
       table.text     :handler                      # YAML-encoded string of the object that will do work
       table.text     :last_error                   # reason for last failure (See Note below)
@@ -13,10 +13,10 @@ class CreateDelayedJobs < ActiveRecord::Migration
       table.timestamps
     end
 	
-    add_index :delayed_jobs, [:priority, :run_at], :name => 'delayed_jobs_priority'
+    add_index :high_importance_delayed_jobs, [:priority, :run_at], :name => 'high_importance_delayed_jobs_priority'
   end
   
   def self.down
-    drop_table :delayed_jobs  
+    drop_table :high_importance_delayed_jobs  
   end
 end

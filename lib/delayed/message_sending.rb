@@ -10,52 +10,28 @@ module Delayed
     end
 
     def method_missing(method, *args)
-      Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
-    end
-  end
-
-  class HighImportanceDelayProxy < ActiveSupport::BasicObject
-    def initialize(payload_class, target, options)
-      @payload_class = payload_class
-      @target = target
-      @options = options
-    end
-
-    def method_missing(method, *args)
-      HighImportanceJob.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
-    end
-  end
-  
-  class LowImportanceDelayProxy < ActiveSupport::BasicObject
-    def initialize(payload_class, target, options)
-      @payload_class = payload_class
-      @target = target
-      @options = options
-    end
-
-    def method_missing(method, *args)
-      LowImportanceJob.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+      if @options.empty?
+        Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+      else
+        unless @options.has_key?(:importance)
+          Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+        else
+          case @options[:importance]
+          when "high"
+            HighImportanceJob.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+          when "normal"
+            Job.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+          when "low"
+            LowImportanceJob.enqueue({:payload_object => @payload_class.new(@target, method.to_sym, args)}.merge(@options))
+          end
+        end
+      end 
     end
   end
   
   module MessageSending
-    def delay(options = {})
-      if options.empty?
+    def delay(options = {}) 
         DelayProxy.new(PerformableMethod, self, options)
-      else
-        unless options.has_key?(:importance)
-          DelayProxy.new(PerformableMethod, self, options)
-        else
-          case options[:importance]
-          when "high"
-            HighImportanceDelayProxy.new(PerformableMethod, self, options)
-          when "normal"
-            DelayProxy.new(PerformableMethod, self, options)
-          when "low"
-            LowImportanceDelayProxy.new(PerformableMethod, self, options)
-          end
-        end
-      end
     end
     
     alias __delay__ delay
